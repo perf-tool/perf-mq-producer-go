@@ -22,9 +22,25 @@ import (
 	"perf-mq-producer-go/util"
 )
 
+// common config
+var (
+	ProduceRate     = util.GetEnvInt("PRODUCE_RATE", 1000)
+	ProduceMinute   = util.GetEnvInt("PRODUCE_MINUTE", 60)
+	ProduceInterval = util.GetEnvInt("PRODUCE_INTERVAL", 0)
+)
+
+// pulsar environment config
 var (
 	PulsarHost        = util.GetEnvStr("PULSAR_HOST", "localhost")
 	PulsarPort        = util.GetEnvInt("PULSAR_PORT", 6650)
 	PulsarTopic       = os.Getenv("PULSAR_TOPIC")
 	PulsarMessageSize = util.GetEnvInt("PULSAR_MESSAGE_SIZE", 1024)
+)
+
+// kafka environment config
+var (
+	KafkaHost        = util.GetEnvStr("KAFKA_HOST", "localhost")
+	KafkaPort        = util.GetEnvInt("KAFKA_PORT", 9092)
+	KafkaTopic       = util.GetEnvStr("KAFKA_TOPIC", "testTopic")
+	KafkaMessageSize = util.GetEnvInt("KAFKA_MESSAGE_SIZE", 1024)
 )

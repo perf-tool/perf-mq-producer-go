@@ -25,4 +25,5 @@ var (
 
 const (
 	ProduceTypePulsar = "pulsar"
+	ProduceTypeKafka  = "kafka"
 )
