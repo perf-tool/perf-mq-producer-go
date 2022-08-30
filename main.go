@@ -22,6 +22,7 @@ import (
 	"os"
 	"os/signal"
 	"perf-mq-producer-go/conf"
+	"perf-mq-producer-go/kafka"
 	"perf-mq-producer-go/pulsar"
 )
 
@@ -33,6 +34,8 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
+	case conf.ProduceTypeKafka:
+		kafka.Start()
 	}
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt)

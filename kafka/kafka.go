@@ -15,12 +15,11 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package pulsar
+package kafka
 
 import (
-	"context"
 	"fmt"
-	"github.com/apache/pulsar-client-go/pulsar"
+	"github.com/Shopify/sarama"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/time/rate"
 	"perf-mq-producer-go/conf"
@@ -28,25 +27,26 @@ import (
 	"time"
 )
 
-func Start() error {
-	client, err := pulsar.NewClient(pulsar.ClientOptions{
-		URL: fmt.Sprintf("pulsar://%s:%d", conf.PulsarHost, conf.PulsarPort),
-	})
-	if err != nil {
-		return err
-	}
+func Start() {
 	for i := 0; i < conf.RoutineNum; i++ {
-		go startProducer(client)
+		go startProducer()
 	}
-	return nil
 }
 
-func startProducer(client pulsar.Client) {
-	producer, err := client.CreateProducer(pulsar.ProducerOptions{
-		Topic: conf.PulsarTopic,
-	})
+func startProducer() {
+	config := sarama.NewConfig()
+	config.Producer.Return.Successes = true
+	config.Producer.RequiredAcks = sarama.WaitForAll
+	config.Producer.Partitioner = sarama.NewRandomPartitioner
+	producer, err := sarama.NewSyncProducer([]string{fmt.Sprintf("%s:%d",
+		conf.KafkaHost, conf.KafkaPort)}, config)
 	if err != nil {
-		logrus.Errorf("create producer %s error: %v", conf.PulsarTopic, err)
+		logrus.Errorf("init producer failed: %+v", err)
+		return
+	}
+	defer producer.Close()
+	msg := &sarama.ProducerMessage{
+		Topic: conf.KafkaTopic,
 	}
 	startAt := time.Now()
 	rateLimit := rate.NewLimiter(rate.Limit(conf.ProduceRate), 1000)
@@ -57,13 +57,11 @@ func startProducer(client pulsar.Client) {
 		if !rateLimit.Allow() {
 			continue
 		}
-		messageID, err := producer.Send(context.Background(), &pulsar.ProducerMessage{
-			Payload: []byte(util.RandStr(conf.PulsarMessageSize)),
-		})
+		msg.Value = sarama.ByteEncoder(util.RandStr(conf.KafkaMessageSize))
+		_, _, err := producer.SendMessage(msg)
 		if err != nil {
-			logrus.Errorf("send message %s error: %v", conf.PulsarTopic, err)
-		} else {
-			logrus.Infof("send message %s success, messageID: %s", conf.PulsarTopic, messageID)
+			logrus.Errorf("send message failed: %v", err)
+			return
 		}
 		if conf.ProduceInterval != 0 {
 			time.Sleep(time.Millisecond * time.Duration(conf.ProduceInterval))
