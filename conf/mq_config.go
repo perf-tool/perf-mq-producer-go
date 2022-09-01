@@ -39,8 +39,13 @@ var (
 
 // kafka environment config
 var (
-	KafkaHost        = util.GetEnvStr("KAFKA_HOST", "localhost")
-	KafkaPort        = util.GetEnvInt("KAFKA_PORT", 9092)
-	KafkaTopic       = util.GetEnvStr("KAFKA_TOPIC", "testTopic")
-	KafkaMessageSize = util.GetEnvInt("KAFKA_MESSAGE_SIZE", 1024)
+	KafkaHost              = util.GetEnvStr("KAFKA_HOST", "localhost")
+	KafkaPort              = util.GetEnvInt("KAFKA_PORT", 9092)
+	KafkaTopic             = util.GetEnvStr("KAFKA_TOPIC", "testTopic")
+	KafkaMessageSize       = util.GetEnvInt("KAFKA_MESSAGE_SIZE", 1024)
+	KafkaAutoTopicCreation = util.GetEnvBool("KAFKA_AUTO_TOPIC_CREATION", true)
+	KafkaClientType        = util.GetEnvStr("KAFKA_CLIENT", "kafka-go")
+	KafkaSaslEnable        = util.GetEnvBool("KAFKA_SASL_ENABLE", false)
+	KafkaSaslUsername      = os.Getenv("KAFKA_SASL_USERNAME")
+	KafkaSaslPassword      = os.Getenv("KAFKA_SASL_PASSWORD")
 )
