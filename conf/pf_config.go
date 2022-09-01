@@ -27,3 +27,8 @@ const (
 	ProduceTypePulsar = "pulsar"
 	ProduceTypeKafka  = "kafka"
 )
+
+const (
+	KafkaClientSarama = "sarama"
+	KafkaClientGo     = "kafka-go"
+)

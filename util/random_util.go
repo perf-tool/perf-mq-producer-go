@@ -24,9 +24,14 @@ import (
 const letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
 func RandStr(n int) string {
+	b := RandByte(n)
+	return string(b)
+}
+
+func RandByte(n int) []byte {
 	b := make([]byte, n)
 	for i := range b {
 		b[i] = letters[rand.Int63()%int64(len(letters))]
 	}
-	return string(b)
+	return b
 }
