@@ -21,6 +21,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/Shopify/sarama"
+	confluent "github.com/confluentinc/confluent-kafka-go/kafka"
 	"github.com/segmentio/kafka-go"
 	"github.com/segmentio/kafka-go/sasl/plain"
 	"github.com/sirupsen/logrus"
@@ -38,6 +39,7 @@ type iProducer interface {
 
 var _ iProducer = (*kafkaGo)(nil)
 var _ iProducer = (*kafkaSarama)(nil)
+var _ iProducer = (*kafkaConfluent)(nil)
 
 type kafkaGo struct {
 	writer *kafka.Writer
@@ -47,9 +49,8 @@ func (kg *kafkaGo) initial(ctx context.Context) {
 	transport := kafka.DefaultTransport
 	if conf.KafkaSaslEnable {
 		transport = &kafka.Transport{
-			Dial:        nil,
 			DialTimeout: 3 * time.Second,
-			IdleTimeout: 3 * time.Second,
+			IdleTimeout: 60 * time.Second,
 			ClientID:    "pf-mq",
 			SASL: plain.Mechanism{
 				Username: conf.KafkaSaslUsername,
@@ -73,7 +74,6 @@ func (kg *kafkaGo) send(ctx context.Context, topic string, message []byte) error
 		Value: message,
 	}
 	if err := kg.writer.WriteMessages(ctx, msg); err != nil {
-		logrus.Errorf("send message failed: %+v", err)
 		return err
 	}
 	return nil
@@ -101,7 +101,7 @@ func (ks *kafkaSarama) initial(ctx context.Context) {
 	producer, err := sarama.NewSyncProducer([]string{fmt.Sprintf("%s:%d",
 		conf.KafkaHost, conf.KafkaPort)}, config)
 	if err != nil {
-		logrus.Fatalf("init iProducer failed: %+v", err)
+		logrus.Fatalf("init producer failed: %+v", err)
 	}
 	ks.writer = producer
 }
@@ -113,7 +113,6 @@ func (ks *kafkaSarama) send(ctx context.Context, topic string, message []byte) e
 	}
 	_, _, err := ks.writer.SendMessage(msg)
 	if err != nil {
-		logrus.Errorf("send message failed: %v", err)
 		return err
 	}
 	return nil
@@ -121,6 +120,43 @@ func (ks *kafkaSarama) send(ctx context.Context, topic string, message []byte) e
 
 func (ks *kafkaSarama) close() {
 	ks.writer.Close()
+}
+
+type kafkaConfluent struct {
+	writer *confluent.Producer
+}
+
+func (kc *kafkaConfluent) initial(ctx context.Context) {
+	// configmap: https://github.com/edenhill/librdkafka/blob/master/CONFIGURATION.md
+	var configmap = &confluent.ConfigMap{
+		"bootstrap.servers": fmt.Sprintf("%s:%d", conf.KafkaHost, conf.KafkaPort),
+		"client.id":         "pf-mq",
+	}
+	if conf.KafkaSaslEnable {
+		(*configmap)["sasl.mechanisms"] = "PLAIN"
+		(*configmap)["security.protocol"] = "SASL_PLAINTEXT"
+		(*configmap)["sasl.username"] = conf.KafkaSaslUsername
+		(*configmap)["sasl.password"] = conf.KafkaSaslPassword
+	}
+	p, err := confluent.NewProducer(configmap)
+	if err != nil {
+		logrus.Fatalf("init producer failed: %+v", err)
+	}
+	kc.writer = p
+}
+
+func (kc *kafkaConfluent) send(ctx context.Context, topic string, message []byte) error {
+	if err := kc.writer.Produce(&confluent.Message{
+		TopicPartition: confluent.TopicPartition{Topic: &topic, Partition: confluent.PartitionAny},
+		Value:          message,
+	}, nil); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (kc *kafkaConfluent) close() {
+	kc.writer.Close()
 }
 
 func Start() {
@@ -140,6 +176,8 @@ func startProducer() {
 		producer = &kafkaGo{}
 	case conf.KafkaClientSarama:
 		producer = &kafkaSarama{}
+	case conf.KafkaClientConfluent:
+		producer = &kafkaConfluent{}
 	}
 	producer.initial(dialCtx)
 	defer producer.close()
