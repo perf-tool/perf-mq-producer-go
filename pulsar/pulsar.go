@@ -52,19 +52,24 @@ func startProducer(client pulsar.Client) {
 	rateLimit := rate.NewLimiter(rate.Limit(conf.ProduceRate), 1000)
 	for {
 		if conf.ProduceMinute < int(time.Since(startAt).Minutes()) {
+			// task done, always sleep
+			logrus.Infof("task done")
+			time.Sleep(time.Minute * 9999)
 			continue
 		}
 		if !rateLimit.Allow() {
 			continue
 		}
 		messageID, err := producer.Send(context.Background(), &pulsar.ProducerMessage{
-			Payload: []byte(util.RandStr(conf.PulsarMessageSize)),
+			Payload: util.RandByte(conf.PulsarMessageSize),
 		})
 		if err != nil {
 			logrus.Errorf("send message %s error: %v", conf.PulsarTopic, err)
-		} else {
+		}
+		if conf.ProducePrintInfo {
 			logrus.Infof("send message %s success, messageID: %s", conf.PulsarTopic, messageID)
 		}
+
 		if conf.ProduceInterval != 0 {
 			time.Sleep(time.Millisecond * time.Duration(conf.ProduceInterval))
 		}

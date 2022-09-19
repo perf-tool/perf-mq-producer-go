@@ -24,9 +24,10 @@ import (
 
 // common config
 var (
-	ProduceRate     = util.GetEnvInt("PRODUCE_RATE", 1000)
-	ProduceMinute   = util.GetEnvInt("PRODUCE_MINUTE", 60)
-	ProduceInterval = util.GetEnvInt("PRODUCE_INTERVAL", 0)
+	ProduceRate      = util.GetEnvInt("PRODUCE_RATE", 1000)
+	ProduceMinute    = util.GetEnvInt("PRODUCE_MINUTE", 60)
+	ProduceInterval  = util.GetEnvInt("PRODUCE_INTERVAL", 0)
+	ProducePrintInfo = util.GetEnvBool("PRODUCE_PRINT_INFO", false)
 )
 
 // pulsar environment config
@@ -42,6 +43,7 @@ var (
 	KafkaHost              = util.GetEnvStr("KAFKA_HOST", "localhost")
 	KafkaPort              = util.GetEnvInt("KAFKA_PORT", 9092)
 	KafkaTopic             = util.GetEnvStr("KAFKA_TOPIC", "testTopic")
+	KafkaGroupID           = util.GetEnvStr("KAFKA_GROUP_ID", "testGroup")
 	KafkaMessageSize       = util.GetEnvInt("KAFKA_MESSAGE_SIZE", 1024)
 	KafkaAutoTopicCreation = util.GetEnvBool("KAFKA_AUTO_TOPIC_CREATION", true)
 	KafkaClientType        = util.GetEnvStr("KAFKA_CLIENT", "kafka-go")

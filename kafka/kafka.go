@@ -132,6 +132,9 @@ func (kc *kafkaConfluent) initial(ctx context.Context) {
 		"bootstrap.servers": fmt.Sprintf("%s:%d", conf.KafkaHost, conf.KafkaPort),
 		"client.id":         "pf-mq",
 	}
+	if conf.KafkaGroupID != "" {
+		(*configmap)["group.id"] = conf.KafkaGroupID
+	}
 	if conf.KafkaSaslEnable {
 		(*configmap)["sasl.mechanisms"] = "PLAIN"
 		(*configmap)["security.protocol"] = "SASL_PLAINTEXT"
@@ -178,6 +181,9 @@ func startProducer() {
 		producer = &kafkaSarama{}
 	case conf.KafkaClientConfluent:
 		producer = &kafkaConfluent{}
+	default:
+		logrus.Errorf("unsupport kafka client")
+		return
 	}
 	producer.initial(dialCtx)
 	defer producer.close()
@@ -193,7 +199,8 @@ func startProducer() {
 			continue
 		}
 
-		if err := producer.send(dialCtx, conf.KafkaTopic, util.RandByte(conf.KafkaMessageSize)); err != nil {
+		var data = util.RandByte(conf.KafkaMessageSize)
+		if err := producer.send(dialCtx, conf.KafkaTopic, data); err != nil {
 			logrus.Errorf("send message failed: %+v", err)
 			return
 		}
