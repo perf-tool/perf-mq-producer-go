@@ -27,6 +27,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"golang.org/x/time/rate"
 	"perf-mq-producer-go/conf"
+	"perf-mq-producer-go/trace"
 	"perf-mq-producer-go/util"
 	"time"
 )
@@ -37,9 +38,13 @@ type iProducer interface {
 	close()
 }
 
-var _ iProducer = (*kafkaGo)(nil)
-var _ iProducer = (*kafkaSarama)(nil)
-var _ iProducer = (*kafkaConfluent)(nil)
+var (
+	_ iProducer = (*kafkaGo)(nil)
+	_ iProducer = (*kafkaSarama)(nil)
+	_ iProducer = (*kafkaConfluent)(nil)
+
+	globalTracer trace.Tracing
+)
 
 type kafkaGo struct {
 	writer *kafka.Writer
@@ -107,9 +112,19 @@ func (ks *kafkaSarama) initial(ctx context.Context) {
 }
 
 func (ks *kafkaSarama) send(ctx context.Context, topic string, message []byte) error {
-	msg := &sarama.ProducerMessage{
-		Topic: topic,
-		Value: sarama.ByteEncoder(message),
+	msg := &sarama.ProducerMessage{Topic: topic, Value: sarama.ByteEncoder(message)}
+
+	if conf.TracEnable {
+		var headers = trace.NewHeaders()
+		globalTracer.NewMqSpan(ctx, "/Service/Kafka/Producer", "MQ-Producer",
+			fmt.Sprintf("send message to topic: %s", topic), headers)
+		carrier, err := headers.SkyGoHeaders()
+		if err != nil {
+			logrus.Errorf("reporter failed: %v", err)
+			return err
+		}
+		carrier.Message = message
+		msg = &sarama.ProducerMessage{Topic: topic, Value: sarama.ByteEncoder(carrier.Marshal())}
 	}
 	_, _, err := ks.writer.SendMessage(msg)
 	if err != nil {
@@ -187,6 +202,17 @@ func startProducer() {
 	}
 	producer.initial(dialCtx)
 	defer producer.close()
+
+	// init global trace
+	if conf.TracEnable {
+		globalTracer = &trace.SkyGo{
+			Host:       conf.SkyWalkingHost,
+			Port:       conf.SkyWalkingPort,
+			SampleRate: conf.SkyWalkingSample,
+			Enable:     true,
+		}
+		globalTracer.NewProvider()
+	}
 
 	for {
 		if conf.ProduceMinute < int(time.Since(startAt).Minutes()) {
