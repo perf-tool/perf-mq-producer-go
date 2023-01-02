@@ -28,6 +28,7 @@ var (
 	ProduceMinute    = util.GetEnvInt("PRODUCE_MINUTE", 60)
 	ProduceInterval  = util.GetEnvInt("PRODUCE_INTERVAL", 0)
 	ProducePrintInfo = util.GetEnvBool("PRODUCE_PRINT_INFO", false)
+	TracEnable       = util.GetEnvBool("TRACE_ENABLE", false)
 )
 
 // pulsar environment config
