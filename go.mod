@@ -8,7 +8,7 @@ require (
 	github.com/confluentinc/confluent-kafka-go v1.9.2
 	github.com/segmentio/kafka-go v0.4.39
 	github.com/sirupsen/logrus v1.9.0
-	golang.org/x/time v0.0.0-20191024005414-555d28b269f0
+	golang.org/x/time v0.3.0
 )
 
 require (
