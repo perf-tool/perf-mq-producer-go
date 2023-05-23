@@ -7,7 +7,7 @@ require (
 	github.com/apache/pulsar-client-go v0.8.1
 	github.com/confluentinc/confluent-kafka-go v1.9.2
 	github.com/segmentio/kafka-go v0.4.40
-	github.com/sirupsen/logrus v1.9.0
+	github.com/sirupsen/logrus v1.9.2
 	golang.org/x/time v0.3.0
 )
 
